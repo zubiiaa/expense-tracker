@@ -63,30 +63,30 @@ export default function MonthOverview() {
       </div>
 
       {/* Monthly Summary Cards - Compact */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 max-w-7xl mx-auto">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10 max-w-7xl mx-auto">
         {months.map((month, idx) => (
-          <div key={month.name} className="bg-pink-100 rounded-2xl shadow p-4 flex flex-col gap-1 min-w-[220px] max-w-[260px] mx-auto">
-            <div className="flex items-center gap-2 text-lg font-bold text-gray-800 mb-1 font-display">
-              <span className="text-xl">📅</span> {month.name}
+          <div key={month.name} className="bg-pink-100 rounded-2xl border-0 shadow-lg hover:shadow-xl transition-shadow p-5 flex flex-col gap-4">
+            <div className="flex items-center gap-3 text-lg font-bold text-gray-800 mb-2 font-display">
+              <span className="text-pink-400 text-lg">📅</span> {month.name}
             </div>
-            <div className="flex flex-col gap-0.5 text-sm">
-              <div>Income: <span className="font-bold text-green-600">${month.income.toLocaleString()}</span></div>
-              <div>Expenses: <span className="font-bold text-pink-500">${month.expenses.toLocaleString()}</span></div>
-              <div>Savings: <span className="font-bold text-purple-500">${month.savings.toLocaleString()}</span></div>
-              <div>Transactions: <span className="font-bold text-gray-800">{month.transactions}</span></div>
+            <div className="flex flex-col gap-1 text-md">
+              <div className="flex justify-between"><span className="text-[#A28286]">Income:</span> <span className="font-semibold text-green-600">${month.income.toLocaleString()}</span></div>
+              <div className="flex justify-between"><span className="text-[#A28286]">Expenses:</span> <span className="font-semibold text-pink-500">${month.expenses.toLocaleString()}</span></div>
+              <div className="flex justify-between"><span className="text-[#A28286]">Savings:</span> <span className="font-semibold text-purple-500">${month.savings.toLocaleString()}</span></div>
+              <div className="flex justify-between"><span className="text-[#A28286]">Transactions:</span> <span className="font-semibold text-gray-800">{month.transactions}</span></div>
             </div>
             <button
-              className="mt-3 bg-pink-500 hover:bg-pink-600 text-white rounded-2xl px-4 py-2 text-base font-semibold flex items-center gap-2 transition justify-center"
+              className="mt-2 bg-pink-500 hover:bg-pink-600 text-white rounded-2xl px-8 py-2 text-md flex items-center gap-3 transition justify-center shadow font-display"
               onClick={() => goToMonthDetail(false)}
             >
-              <span className="text-lg">👁</span> View Details
+              <span className="text-md">👁</span> View Details
             </button>
           </div>
         ))}
       </div>
 
       {/* Detailed Monthly Breakdown Table - Compact */}
-      <div className="bg-purple-50 rounded-2xl shadow-md p-4 mb-8 max-w-7xl mx-auto">
+      <div className="bg-violet-50 rounded-2xl shadow-md p-4 mb-8 max-w-7xl mx-auto">
         <div className="flex items-center gap-2 text-xl font-bold text-gray-800 mb-3 font-display">
           Detailed Monthly Breakdown <span>📊</span>
         </div>
@@ -107,7 +107,7 @@ export default function MonthOverview() {
                 <td className="py-2 px-3 text-base text-gray-800">{month.name}</td>
                 <td className="py-2 px-3 text-base font-bold text-green-600">${month.income.toLocaleString()}</td>
                 <td className="py-2 px-3 text-base font-bold text-pink-500">${month.expenses.toLocaleString()}</td>
-                <td className="py-2 px-3 text-base font-bold text-purple-500">${month.savings.toLocaleString()}</td>
+                <td className="py-2 px-3 text-base font-bold text-purple-600">${month.savings.toLocaleString()}</td>
                 <td className="py-2 px-3">
                   <span className="bg-purple-200 text-purple-700 rounded-full px-3 py-1 text-xs font-semibold">
                     {month.topCategory.name} (${month.topCategory.amount})

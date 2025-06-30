@@ -56,22 +56,22 @@ export default function Dashboard() {
         <div>
           <h1 className="text-4xl font-extrabold text-gray-800 mb-1 font-display">Financial Management</h1>
           <p className="text-lg text-gray-500">Track your expenses with love <span className="ml-1">💕</span></p>
-        </div>
+          </div>
         <div className="flex gap-4">
           <button className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white font-semibold px-8 py-3 rounded-2xl shadow-md text-lg transition">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
             Import Excel
-          </button>
-          <button
+            </button>
+            <button 
             className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold px-8 py-3 rounded-2xl shadow-md text-lg transition"
             onClick={() => router.push("/page")}
-          >
+            >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M16 17v1a3 3 0 01-3 3H7a3 3 0 01-3-3V7a3 3 0 013-3h6a3 3 0 013 3v1m5 4h-8m0 0l3-3m-3 3l3 3" /></svg>
             Run API
-          </button>
+            </button>
+          </div>
         </div>
-      </div>
-
+        
       {/* Month Selector - Custom Styled */}
       <div className="bg-pink-100 rounded-2xl shadow-md p-6 mb-8 max-w-5xl mx-auto">
         <label className="flex items-center gap-2 text-xl font-semibold text-gray-800 mb-2 font-display">
@@ -106,7 +106,7 @@ export default function Dashboard() {
           <div className="text-4xl font-extrabold text-pink-600 mb-2">${summary.savings}</div>
           <div className="text-lg text-gray-500">Savings</div>
         </div>
-      </div>
+                    </div>
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto mb-8">
@@ -114,7 +114,7 @@ export default function Dashboard() {
         <div className="bg-purple-50 rounded-2xl shadow-md p-6 flex flex-col">
           <div className="text-xl font-semibold mb-4 flex items-center gap-2 font-display text-gray-800">
             Expense Categories <span>🍰</span>
-          </div>
+                  </div>
           <div className="flex-1 flex flex-col items-center justify-center">
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
@@ -164,7 +164,7 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-
+      
       {/* Action Buttons */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 max-w-5xl mx-auto">
         <button

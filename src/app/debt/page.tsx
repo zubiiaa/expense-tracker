@@ -72,48 +72,48 @@ export default function DebtTracker() {
       </div>
 
       {/* Add New Debt Record */}
-      <div className="bg-purple-50 rounded-2xl shadow-md p-6 mb-8 max-w-6xl mx-auto">
-        <div className="flex items-center gap-2 text-2xl font-bold text-pink-500 mb-4 font-display">
-          <span className="text-2xl">＋</span> Add New Debt Record
+      <div className="bg-violet-50 rounded-2xl shadow-md p-6 mb-8 max-w-6xl mx-auto">
+        <div className="flex items-center gap-2 text-lg font-bold text-pink-500 mb-4 font-display">
+          <span className="text-lg">＋</span> Add New Debt Record
         </div>
         <form className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end mb-4">
           <div className="flex flex-col">
-            <label className="mb-2 font-bold text-lg text-gray-800" htmlFor="debt-name">Name</label>
+            <label className="mb-2 text-gray-800 text-md" htmlFor="debt-name">Name</label>
             <input
               id="debt-name"
-              className="p-4 rounded-xl border-2 border-pink-200 bg-pink-50 text-lg focus:outline-none focus:ring-2 focus:ring-pink-300 placeholder:text-gray-400"
+              className="p-3 rounded-xl border-1 border-purple-200  bg-pink-50 text-sm focus:outline-none focus:ring-1 focus:ring-[#E699CC] placeholder:text-gray-500"
               placeholder="Person's name"
               value={name}
               onChange={e => setName(e.target.value)}
             />
           </div>
           <div className="flex flex-col">
-            <label className="mb-2 font-bold text-lg text-gray-800" htmlFor="debt-amount">Amount</label>
+            <label className="mb-2 text-md text-gray-800" htmlFor="debt-amount">Amount</label>
             <input
               id="debt-amount"
               type="number"
-              className="p-4 rounded-xl border-2 border-pink-200 bg-pink-50 text-lg focus:outline-none focus:ring-2 focus:ring-pink-300 placeholder:text-gray-400"
+              className="p-3 rounded-xl border-1 border-purple-200 bg-pink-50 text-sm focus:outline-none focus:ring-1 focus:ring-[#E699CC] placeholder:text-gray-500"
               placeholder="0.00"
               value={amount}
               onChange={e => setAmount(e.target.value)}
             />
           </div>
           <div className="flex flex-col">
-            <label className="mb-2 font-bold text-lg text-gray-800" htmlFor="debt-detail">Detail</label>
+            <label className="mb-2 text-md text-gray-800" htmlFor="debt-detail">Detail</label>
             <input
               id="debt-detail"
-              className="p-4 rounded-xl border-2 border-pink-200 bg-pink-50 text-lg focus:outline-none focus:ring-2 focus:ring-pink-300 placeholder:text-gray-400"
+              className="p-3 rounded-xl border-1 border-purple-200 bg-pink-50 text-sm focus:outline-none focus:ring-1 focus:ring-[#E699CC] placeholder:text-gray-500"
               placeholder="What for?"
               value={detail}
               onChange={e => setDetail(e.target.value)}
             />
           </div>
           <div className="flex flex-col">
-            <label className="mb-2 font-bold text-lg text-gray-800" htmlFor="debt-date">Date</label>
+            <label className="mb-2 text-md text-gray-800" htmlFor="debt-date">Date</label>
             <input
               id="debt-date"
               type="date"
-              className="p-4 rounded-xl border-2 border-pink-200 bg-pink-50 text-lg focus:outline-none focus:ring-2 focus:ring-pink-300 placeholder:text-gray-400"
+              className="p-3 rounded-xl border-1 border-purple-200 bg-pink-50 text-sm focus:outline-none focus:ring-1 focus:ring-[#E699CC] placeholder:text-gray-500"
               placeholder="mm/dd/yyyy"
               value={date}
               onChange={e => setDate(e.target.value)}
@@ -123,14 +123,14 @@ export default function DebtTracker() {
         <div className="flex gap-4">
           <button
             type="button"
-            className="bg-pink-500 hover:bg-pink-600 text-white rounded-xl px-8 py-3 text-lg font-semibold flex items-center gap-2 transition"
+            className="bg-pink-500 hover:bg-pink-600 text-white rounded-xl px-4 py-2 text-sm flex items-center gap-2 transition"
             onClick={() => handleAdd('oweOthers')}
           >
             I Owe This
           </button>
           <button
             type="button"
-            className="bg-teal-500 hover:bg-teal-600 text-white rounded-xl px-8 py-3 text-lg font-semibold flex items-center gap-2 transition"
+            className="bg-teal-500 hover:bg-teal-600 text-white rounded-xl px-4 py-2 text-sm flex items-center gap-2 transition"
             onClick={() => handleAdd('owedMe')}
           >
             They Owe Me
@@ -141,13 +141,13 @@ export default function DebtTracker() {
       {/* Tab Switcher */}
       <div className="flex gap-2 mb-4 max-w-6xl mx-auto">
         <button
-          className={`flex-1 rounded-full px-4 py-3 font-semibold text-lg transition ${tab === 'oweOthers' ? 'bg-pink-500 text-white' : 'bg-white text-pink-500 border border-pink-200'}`}
+          className={`flex-1 rounded-full px-4 py-2 text-sm transition ${tab === 'oweOthers' ? 'bg-pink-500 text-white' : 'bg-white text-pink-500 border border-pink-200'}`}
           onClick={() => setTab('oweOthers')}
         >
           🤑 I Owe Others
         </button>
         <button
-          className={`flex-1 rounded-full px-4 py-3 font-semibold text-lg transition ${tab === 'owedMe' ? 'bg-teal-500 text-white' : 'bg-white text-teal-500 border border-teal-200'}`}
+          className={`flex-1 rounded-full px-4 py-2 text-sm transition ${tab === 'owedMe' ? 'bg-teal-500 text-white' : 'bg-white text-teal-500 border border-teal-200'}`}
           onClick={() => setTab('owedMe')}
         >
           🪙 Others Owe Me
@@ -192,7 +192,7 @@ export default function DebtTracker() {
           </table>
         </div>
       ) : (
-        <div className="bg-green-100 rounded-2xl shadow-md p-6 max-w-6xl mx-auto mb-8">
+        <div className="bg-teal-50 rounded-2xl shadow-md p-6 max-w-6xl mx-auto mb-8">
           <div className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2 font-display">Money Owed to Me <span>🪙</span></div>
           <table className="w-full text-left">
             <thead>
