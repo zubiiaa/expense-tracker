@@ -5,10 +5,10 @@ import mongoose from 'mongoose';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     
     // Validate MongoDB ID
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -18,10 +18,8 @@ export async function GET(
       );
     }
     
-    // Connect to the database
     await connectToDatabase();
     
-    // Find the expense by ID
     const expense = await Expense.findById(id);
     
     if (!expense) {
@@ -43,10 +41,10 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
     
     // Validate MongoDB ID
@@ -57,10 +55,8 @@ export async function PUT(
       );
     }
     
-    // Connect to the database
     await connectToDatabase();
     
-    // Update the expense
     const updatedExpense = await Expense.findByIdAndUpdate(
       id,
       { ...body },
@@ -86,10 +82,10 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     
     // Validate MongoDB ID
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -99,10 +95,8 @@ export async function DELETE(
       );
     }
     
-    // Connect to the database
     await connectToDatabase();
     
-    // Delete the expense
     const deletedExpense = await Expense.findByIdAndDelete(id);
     
     if (!deletedExpense) {
