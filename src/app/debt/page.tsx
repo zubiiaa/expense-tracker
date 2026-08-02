@@ -1,233 +1,192 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import '../../styles/theme.css';
+import {
+  Button,
+  Card,
+  Field,
+  Input,
+  PageHeader,
+  StatCard,
+} from "@/components/ui";
+import { cn, formatCurrency, formatDate } from "@/lib/format";
+import { useCollection } from "@/lib/useCollection";
 
-const initialOweOthers = [
-  { name: "Sarah", amount: 150, detail: "Dinner last week", date: "2024-04-10" },
-  { name: "Mom", amount: 200, detail: "Phone bill help", date: "2024-04-05" },
-];
-const initialOwedMe = [
-  { name: "Emma", amount: 75, detail: "Movie tickets", date: "2024-04-12" },
-  { name: "Jake", amount: 120, detail: "Uber ride share", date: "2024-04-08" },
-];
+type Direction = "owe" | "owed";
+
+type Debt = {
+  _id: string;
+  name: string;
+  amount: number;
+  detail: string;
+  date: string;
+  direction: Direction;
+};
 
 export default function DebtTracker() {
-  const router = useRouter();
-  const [tab, setTab] = useState<'oweOthers' | 'owedMe'>('oweOthers');
-  const [oweOthers, setOweOthers] = useState(initialOweOthers);
-  const [owedMe, setOwedMe] = useState(initialOwedMe);
+  const { items: debts, loading, add, remove } = useCollection<Debt>("/api/debts");
+  const [tab, setTab] = useState<Direction>("owe");
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [detail, setDetail] = useState("");
   const [date, setDate] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const totalOweOthers = oweOthers.reduce((sum, d) => sum + Number(d.amount), 0);
-  const totalOwedMe = owedMe.reduce((sum, d) => sum + Number(d.amount), 0);
+  const owe = debts.filter((d) => d.direction === "owe");
+  const owed = debts.filter((d) => d.direction === "owed");
+  const totalOwe = owe.reduce((s, d) => s + d.amount, 0);
+  const totalOwed = owed.reduce((s, d) => s + d.amount, 0);
+  const records = tab === "owe" ? owe : owed;
 
-  // Add new debt record
-  const handleAdd = (type: 'oweOthers' | 'owedMe') => {
-    if (!name || !amount || !date) return;
-    const record = { name, amount: Number(amount), detail, date };
-    if (type === 'oweOthers') setOweOthers(prev => [...prev, record]);
-    else setOwedMe(prev => [...prev, record]);
-    setName(""); setAmount(""); setDetail(""); setDate("");
-  };
-
-  // Delete record
-  const handleDelete = (type: 'oweOthers' | 'owedMe', idx: number) => {
-    if (type === 'oweOthers') setOweOthers(prev => prev.filter((_, i) => i !== idx));
-    else setOwedMe(prev => prev.filter((_, i) => i !== idx));
+  const handleAdd = async (direction: Direction) => {
+    if (!name || !amount) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await add({ name, amount: Number(amount), detail, date: date || undefined, direction });
+      setName("");
+      setAmount("");
+      setDetail("");
+      setDate("");
+      setTab(direction);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to add");
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-pink-50 to-purple-50 p-6">
-      {/* Back to Dashboard */}
-      <button
-        className="flex items-center gap-2 text-gray-700 hover:text-purple-600 font-medium mb-4 border border-pink-200 rounded-xl px-4 py-2 bg-white shadow-sm"
-        onClick={() => router.push("/dashboard")}
-      >
-        <span className="text-2xl">←</span> Back to Dashboard
-      </button>
+    <div>
+      <PageHeader
+        title="Debts"
+        description="Money you owe and money owed to you."
+      />
 
-      {/* Heading */}
-      <div className="flex items-center gap-3 mb-8">
-        <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-500 font-display">Debt Tracker</h1>
-        <span className="text-3xl">💧</span>
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <StatCard label="You owe" value={formatCurrency(totalOwe)} tone="negative" />
+        <StatCard label="Owed to you" value={formatCurrency(totalOwed)} tone="positive" />
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 max-w-4xl mx-auto">
-        <div className="bg-pink-100 rounded-2xl shadow-md p-8 text-center">
-          <div className="text-4xl text-pink-400 mb-2">$</div>
-          <div className="text-3xl font-extrabold text-pink-500 mb-1">${totalOweOthers}</div>
-          <div className="text-lg text-gray-500">I Owe Others</div>
-        </div>
-        <div className="bg-green-100 rounded-2xl shadow-md p-8 text-center">
-          <div className="text-4xl text-teal-500 mb-2">👤</div>
-          <div className="text-3xl font-extrabold text-teal-600 mb-1">${totalOwedMe}</div>
-          <div className="text-lg text-gray-500">Others Owe Me</div>
-        </div>
-      </div>
-
-      {/* Add New Debt Record */}
-      <div className="bg-violet-50 rounded-2xl shadow-md p-6 mb-8 max-w-6xl mx-auto">
-        <div className="flex items-center gap-2 text-lg font-bold text-pink-500 mb-4 font-display">
-          <span className="text-lg">＋</span> Add New Debt Record
-        </div>
-        <form className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end mb-4">
-          <div className="flex flex-col">
-            <label className="mb-2 text-gray-800 text-md" htmlFor="debt-name">Name</label>
-            <input
-              id="debt-name"
-              className="p-3 rounded-xl border-1 border-purple-200  bg-pink-50 text-sm focus:outline-none focus:ring-1 focus:ring-[#E699CC] placeholder:text-gray-500"
+      <Card className="mb-6">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Field label="Name" htmlFor="d-name">
+            <Input
+              id="d-name"
               placeholder="Person's name"
               value={name}
-              onChange={e => setName(e.target.value)}
+              onChange={(e) => setName(e.target.value)}
             />
-          </div>
-          <div className="flex flex-col">
-            <label className="mb-2 text-md text-gray-800" htmlFor="debt-amount">Amount</label>
-            <input
-              id="debt-amount"
+          </Field>
+          <Field label="Amount" htmlFor="d-amount">
+            <Input
+              id="d-amount"
               type="number"
-              className="p-3 rounded-xl border-1 border-purple-200 bg-pink-50 text-sm focus:outline-none focus:ring-1 focus:ring-[#E699CC] placeholder:text-gray-500"
               placeholder="0.00"
               value={amount}
-              onChange={e => setAmount(e.target.value)}
+              onChange={(e) => setAmount(e.target.value)}
             />
-          </div>
-          <div className="flex flex-col">
-            <label className="mb-2 text-md text-gray-800" htmlFor="debt-detail">Detail</label>
-            <input
-              id="debt-detail"
-              className="p-3 rounded-xl border-1 border-purple-200 bg-pink-50 text-sm focus:outline-none focus:ring-1 focus:ring-[#E699CC] placeholder:text-gray-500"
+          </Field>
+          <Field label="Detail" htmlFor="d-detail">
+            <Input
+              id="d-detail"
               placeholder="What for?"
               value={detail}
-              onChange={e => setDetail(e.target.value)}
+              onChange={(e) => setDetail(e.target.value)}
             />
-          </div>
-          <div className="flex flex-col">
-            <label className="mb-2 text-md text-gray-800" htmlFor="debt-date">Date</label>
-            <input
-              id="debt-date"
+          </Field>
+          <Field label="Date" htmlFor="d-date">
+            <Input
+              id="d-date"
               type="date"
-              className="p-3 rounded-xl border-1 border-purple-200 bg-pink-50 text-sm focus:outline-none focus:ring-1 focus:ring-[#E699CC] placeholder:text-gray-500"
-              placeholder="mm/dd/yyyy"
               value={date}
-              onChange={e => setDate(e.target.value)}
+              onChange={(e) => setDate(e.target.value)}
             />
+          </Field>
+        </div>
+        <div className="mt-4 flex items-center gap-2">
+          <Button onClick={() => handleAdd("owe")} disabled={busy}>
+            I owe this
+          </Button>
+          <Button variant="secondary" onClick={() => handleAdd("owed")} disabled={busy}>
+            They owe me
+          </Button>
+          {error ? <span className="text-sm text-negative">{error}</span> : null}
+        </div>
+      </Card>
+
+      <div className="mb-4 inline-flex rounded-lg border border-border bg-surface p-1">
+        {(["owe", "owed"] as const).map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={cn(
+              "rounded-md px-4 py-1.5 text-sm font-medium transition-colors",
+              tab === t
+                ? "bg-accent text-accent-foreground"
+                : "text-muted hover:text-foreground",
+            )}
+          >
+            {t === "owe"
+              ? `I owe (${owe.length})`
+              : `Owed to me (${owed.length})`}
+          </button>
+        ))}
+      </div>
+
+      <Card className="p-0">
+        {loading ? (
+          <p className="p-5 text-sm text-muted">Loading…</p>
+        ) : records.length === 0 ? (
+          <p className="p-5 text-sm text-muted">Nothing recorded here yet.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
+                  <th className="px-5 py-3 font-medium">Name</th>
+                  <th className="px-5 py-3 font-medium">Detail</th>
+                  <th className="px-5 py-3 font-medium">Date</th>
+                  <th className="px-5 py-3 text-right font-medium">Amount</th>
+                  <th className="px-5 py-3" />
+                </tr>
+              </thead>
+              <tbody>
+                {records.map((d) => (
+                  <tr key={d._id} className="border-b border-border last:border-0">
+                    <td className="px-5 py-3 font-medium">{d.name}</td>
+                    <td className="px-5 py-3 text-muted">{d.detail || "—"}</td>
+                    <td className="px-5 py-3 text-muted">
+                      {d.date ? formatDate(d.date) : "—"}
+                    </td>
+                    <td className="px-5 py-3 text-right font-medium tabular-nums">
+                      {formatCurrency(d.amount)}
+                    </td>
+                    <td className="px-5 py-3 text-right">
+                      <button
+                        onClick={() => remove(d._id)}
+                        className="text-muted transition-colors hover:text-negative"
+                        aria-label="Delete"
+                      >
+                        <svg
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth={1.75}
+                          className="h-4 w-4"
+                        >
+                          <path d="M6 6l12 12M18 6L6 18" />
+                        </svg>
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </form>
-        <div className="flex gap-4">
-          <button
-            type="button"
-            className="bg-pink-500 hover:bg-pink-600 text-white rounded-xl px-4 py-2 text-sm flex items-center gap-2 transition"
-            onClick={() => handleAdd('oweOthers')}
-          >
-            I Owe This
-          </button>
-          <button
-            type="button"
-            className="bg-teal-500 hover:bg-teal-600 text-white rounded-xl px-4 py-2 text-sm flex items-center gap-2 transition"
-            onClick={() => handleAdd('owedMe')}
-          >
-            They Owe Me
-          </button>
-        </div>
-      </div>
-
-      {/* Tab Switcher */}
-      <div className="flex gap-2 mb-4 max-w-6xl mx-auto">
-        <button
-          className={`flex-1 rounded-full px-4 py-2 text-sm transition ${tab === 'oweOthers' ? 'bg-pink-500 text-white' : 'bg-white text-pink-500 border border-pink-200'}`}
-          onClick={() => setTab('oweOthers')}
-        >
-          🤑 I Owe Others
-        </button>
-        <button
-          className={`flex-1 rounded-full px-4 py-2 text-sm transition ${tab === 'owedMe' ? 'bg-teal-500 text-white' : 'bg-white text-teal-500 border border-teal-200'}`}
-          onClick={() => setTab('owedMe')}
-        >
-          🪙 Others Owe Me
-        </button>
-      </div>
-
-      {/* Debt Tables */}
-      {tab === 'oweOthers' ? (
-        <div className="bg-pink-100 rounded-2xl shadow-md p-6 max-w-6xl mx-auto mb-8">
-          <div className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2 font-display">Money I Owe <span>🤑</span></div>
-          <table className="w-full text-left">
-            <thead>
-              <tr className="text-gray-500 text-base">
-                <th className="py-2 px-3 font-semibold">Name</th>
-                <th className="py-2 px-3 font-semibold">Amount</th>
-                <th className="py-2 px-3 font-semibold">Detail</th>
-                <th className="py-2 px-3 font-semibold">Date</th>
-                <th className="py-2 px-3 font-semibold">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {oweOthers.map((d, idx) => (
-                <tr key={idx} className="border-b last:border-b-0 hover:bg-pink-200/60 transition">
-                  <td className="py-2 px-3 text-base text-gray-800">{d.name}</td>
-                  <td className="py-2 px-3 text-base font-bold text-pink-500">${d.amount}</td>
-                  <td className="py-2 px-3 text-base text-gray-800">{d.detail}</td>
-                  <td className="py-2 px-3 text-base text-gray-800">{d.date}</td>
-                  <td className="py-2 px-3">
-                    <button
-                      className="text-pink-400 hover:text-pink-600 text-xl transition"
-                      title="Delete"
-                      onClick={() => handleDelete('oweOthers', idx)}
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <div className="bg-teal-50 rounded-2xl shadow-md p-6 max-w-6xl mx-auto mb-8">
-          <div className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2 font-display">Money Owed to Me <span>🪙</span></div>
-          <table className="w-full text-left">
-            <thead>
-              <tr className="text-gray-500 text-base">
-                <th className="py-2 px-3 font-semibold">Name</th>
-                <th className="py-2 px-3 font-semibold">Amount</th>
-                <th className="py-2 px-3 font-semibold">Detail</th>
-                <th className="py-2 px-3 font-semibold">Date</th>
-                <th className="py-2 px-3 font-semibold">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {owedMe.map((d, idx) => (
-                <tr key={idx} className="border-b last:border-b-0 hover:bg-green-200/60 transition">
-                  <td className="py-2 px-3 text-base text-gray-800">{d.name}</td>
-                  <td className="py-2 px-3 text-base font-bold text-teal-600">${d.amount}</td>
-                  <td className="py-2 px-3 text-base text-gray-800">{d.detail}</td>
-                  <td className="py-2 px-3 text-base text-gray-800">{d.date}</td>
-                  <td className="py-2 px-3">
-                    <button
-                      className="text-teal-500 hover:text-teal-700 text-xl transition"
-                      title="Delete"
-                      onClick={() => handleDelete('owedMe', idx)}
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+        )}
+      </Card>
     </div>
   );
 }
