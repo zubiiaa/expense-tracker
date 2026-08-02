@@ -1,124 +1,139 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import '../../styles/theme.css';
+import {
+  Badge,
+  Button,
+  Card,
+  Field,
+  Input,
+  PageHeader,
+  Select,
+  Textarea,
+} from "@/components/ui";
+import { formatDate } from "@/lib/format";
+import { useCollection } from "@/lib/useCollection";
 
-const initialNotes = [
-  {
-    id: 1,
-    title: "Shopping List",
-    category: "Shopping",
-    date: "2024-04-15",
-    content: "Need to buy groceries for the week - milk, bread, eggs, fruits 🛒",
-  },
-  {
-    id: 2,
-    title: "Budget Goal",
-    category: "Goals",
-    date: "2024-04-10",
-    content: "Save $500 this month for vacation fund! Already saved $200 💪",
-  },
-];
+type Note = {
+  _id: string;
+  title: string;
+  category: string;
+  date: string;
+  content: string;
+};
 
-const categories = ["Personal", "Shopping", "Goals", "Work", "Other"];
+const CATEGORIES = ["Personal", "Shopping", "Goals", "Work", "Other"];
 
 export default function NotesPage() {
-  const router = useRouter();
-  const [notes, setNotes] = useState(initialNotes);
+  const { items: notes, loading, add, remove } = useCollection<Note>("/api/notes");
   const [title, setTitle] = useState("");
-  const [category, setCategory] = useState(categories[0]);
+  const [category, setCategory] = useState(CATEGORIES[0]);
   const [content, setContent] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Placeholder add note (not functional yet)
-  const handleAddNote = () => {
-    // Add note logic here if needed
+  const addNote = async () => {
+    if (!title.trim()) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await add({ title: title.trim(), category, content: content.trim() });
+      setTitle("");
+      setContent("");
+      setCategory(CATEGORIES[0]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to add note");
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-pink-50 to-purple-50 p-6">
-      {/* Back to Dashboard */}
-      <button
-        className="flex items-center gap-2 text-gray-700 hover:text-purple-600 font-medium mb-4"
-        onClick={() => router.push("/dashboard")}
-      >
-        <span className="text-2xl">←</span> Back to Dashboard
-      </button>
+    <div>
+      <PageHeader title="Notes" description="Reminders and financial goals." />
 
-      {/* Heading */}
-      <div className="flex items-center gap-3 mb-6">
-        <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-500 font-display">My Notes</h1>
-        <span className="text-3xl">📔💙</span>
-      </div>
-
-      {/* Add New Note Card */}
-      <div className="bg-pink-100 rounded-2xl shadow-md p-6 mb-8 max-w-5xl mx-auto">
-        <div className="flex items-center gap-2 text-xl font-semibold text-pink-500 mb-4 font-display">
-          <span className="text-2xl">＋</span> Add New Note
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div className="flex flex-col">
-            <label className="mb-1 font-bold text-gray-800" htmlFor="note-title">Title</label>
-            <input
-              id="note-title"
-              className="p-3 rounded-xl border-2 border-pink-200 bg-pink-50 text-lg focus:outline-none focus:ring-2 focus:ring-pink-300 placeholder:text-gray-400"
-              placeholder="Note title..."
+      <Card className="mb-6">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label="Title" htmlFor="n-title">
+            <Input
+              id="n-title"
+              placeholder="Note title"
               value={title}
-              onChange={e => setTitle(e.target.value)}
+              onChange={(e) => setTitle(e.target.value)}
             />
-          </div>
-          <div className="flex flex-col">
-            <label className="mb-1 font-bold text-gray-800" htmlFor="note-category">Category</label>
-            <select
-              id="note-category"
-              className="p-3 rounded-xl border-2 border-pink-200 bg-pink-50 text-lg focus:outline-none focus:ring-2 focus:ring-pink-300"
+          </Field>
+          <Field label="Category" htmlFor="n-category">
+            <Select
+              id="n-category"
               value={category}
-              onChange={e => setCategory(e.target.value)}
+              onChange={(e) => setCategory(e.target.value)}
             >
-              {categories.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
+              {CATEGORIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
               ))}
-            </select>
-          </div>
+            </Select>
+          </Field>
         </div>
-        <div className="mb-4">
-          <label className="mb-1 font-bold text-gray-800" htmlFor="note-content">Note Content</label>
-          <textarea
-            id="note-content"
-            className="p-3 rounded-xl border-2 border-pink-200 bg-pink-50 text-lg focus:outline-none focus:ring-2 focus:ring-pink-300 w-full min-h-[100px] placeholder:text-gray-400"
-            placeholder="Write your note here... ✨"
-            value={content}
-            onChange={e => setContent(e.target.value)}
-          />
+        <div className="mt-4">
+          <Field label="Content" htmlFor="n-content">
+            <Textarea
+              id="n-content"
+              rows={3}
+              placeholder="Write your note…"
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+            />
+          </Field>
         </div>
-        <button
-          className="bg-pink-400 hover:bg-pink-500 text-white rounded-xl px-6 py-3 text-lg font-semibold flex items-center gap-2 transition"
-          onClick={handleAddNote}
-        >
-          <span className="text-2xl">＋</span> Add Note
-        </button>
-      </div>
+        <div className="mt-4 flex items-center gap-3">
+          <Button onClick={addNote} disabled={busy}>
+            {busy ? "Adding…" : "Add note"}
+          </Button>
+          {error ? <span className="text-sm text-negative">{error}</span> : null}
+        </div>
+      </Card>
 
-      {/* Notes List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
-        {notes.map(note => (
-          <div key={note.id} className="bg-purple-50 rounded-2xl shadow-md p-6 flex flex-col relative">
-            <div className="flex items-center justify-between mb-2">
-              <div className="text-xl font-semibold text-gray-800 font-display">{note.title}</div>
-              <button className="text-pink-400 hover:text-pink-600 text-xl transition" title="Delete">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="flex items-center gap-3 mb-2">
-              <span className="bg-purple-200 text-purple-700 rounded-full px-3 py-1 text-xs font-semibold">{note.category}</span>
-              <span className="text-xs text-gray-400">{note.date}</span>
-            </div>
-            <div className="text-gray-700 text-base mb-2">{note.content}</div>
-          </div>
-        ))}
-      </div>
+      {loading ? (
+        <Card className="text-sm text-muted">Loading…</Card>
+      ) : notes.length === 0 ? (
+        <Card className="text-sm text-muted">No notes yet.</Card>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {notes.map((note) => (
+            <Card key={note._id} className="flex flex-col gap-3">
+              <div className="flex items-start justify-between gap-2">
+                <h3 className="font-medium">{note.title}</h3>
+                <button
+                  onClick={() => remove(note._id)}
+                  className="text-muted transition-colors hover:text-negative"
+                  aria-label="Delete note"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={1.75}
+                    className="h-4 w-4"
+                  >
+                    <path d="M6 6l12 12M18 6L6 18" />
+                  </svg>
+                </button>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge>{note.category}</Badge>
+                <span className="text-xs text-muted">
+                  {formatDate(note.date)}
+                </span>
+              </div>
+              {note.content ? (
+                <p className="text-sm text-muted">{note.content}</p>
+              ) : null}
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

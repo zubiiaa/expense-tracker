@@ -1,201 +1,309 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from "recharts";
-import '../../styles/theme.css'; // Import theme variables
+import Link from "next/link";
+import { useMemo, useState } from "react";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+} from "recharts";
+import { Badge, Button, Card, PageHeader, StatCard } from "@/components/ui";
+import { CHART_COLORS } from "@/lib/categories";
+import { formatCurrency, formatDate } from "@/lib/format";
+import { generateSampleTransactions } from "@/lib/sampleData";
+import { useExpenses, type Transaction } from "@/lib/useExpenses";
 
-const months = [
-  "January 2024",
-  "February 2024",
-  "March 2024",
-  "April 2024",
-];
+function categoryBreakdown(transactions: Transaction[]) {
+  const totals = new Map<string, number>();
+  for (const t of transactions) {
+    if (t.type !== "debit") continue;
+    totals.set(t.category, (totals.get(t.category) ?? 0) + t.amount);
+  }
+  return [...totals.entries()]
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value);
+}
 
-const pieColors = [
-  "var(--color-pie1)",
-  "var(--color-pie2)",
-  "var(--color-pie3)",
-  "var(--color-pie4)",
-  "var(--color-pie5)",
-];
+function monthlyTotals(transactions: Transaction[]) {
+  const buckets = new Map<string, { income: number; spending: number }>();
+  for (const t of transactions) {
+    const d = new Date(t.date);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const bucket = buckets.get(key) ?? { income: 0, spending: 0 };
+    if (t.type === "credit") bucket.income += t.amount;
+    else bucket.spending += t.amount;
+    buckets.set(key, bucket);
+  }
+  return [...buckets.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .slice(-6)
+    .map(([key, v]) => ({
+      month: new Date(`${key}-01`).toLocaleDateString("en-US", {
+        month: "short",
+      }),
+      ...v,
+    }));
+}
+
+function ChartTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: Array<{ name: string; value: number }>;
+}) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="rounded-lg border border-border bg-surface px-3 py-2 text-xs shadow-sm">
+      {payload.map((p) => (
+        <div key={p.name} className="flex justify-between gap-4">
+          <span className="text-muted">{p.name}</span>
+          <span className="font-medium tabular-nums">
+            {formatCurrency(p.value)}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function Dashboard() {
-  const [selectedMonth, setSelectedMonth] = useState("April 2024");
-  const router = useRouter();
+  const { transactions, loading, reload } = useExpenses();
+  const [seeding, setSeeding] = useState(false);
 
-  // Placeholder summary data
-  const summary = {
-    expenses: 3400,
-    income: 4000,
-    savings: 600,
+  const { income, spending, net, savingsRate, categories, monthly, recent } =
+    useMemo(() => {
+      const income = transactions
+        .filter((t) => t.type === "credit")
+        .reduce((s, t) => s + t.amount, 0);
+      const spending = transactions
+        .filter((t) => t.type === "debit")
+        .reduce((s, t) => s + t.amount, 0);
+      const net = income - spending;
+      return {
+        income,
+        spending,
+        net,
+        savingsRate: income > 0 ? Math.round((net / income) * 100) : 0,
+        categories: categoryBreakdown(transactions),
+        monthly: monthlyTotals(transactions),
+        recent: transactions.slice(0, 5),
+      };
+    }, [transactions]);
+
+  const loadSample = async () => {
+    setSeeding(true);
+    try {
+      await fetch("/api/expenses/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rows: generateSampleTransactions() }),
+      });
+      await reload();
+    } finally {
+      setSeeding(false);
+    }
   };
 
-  // Placeholder categories data
-  const categories = [
-    { name: "Food", value: 25 },
-    { name: "Bills", value: 35 },
-    { name: "Entertainment", value: 12 },
-    { name: "Transport", value: 9 },
-    { name: "Shopping", value: 19 },
-  ];
-
-  // Placeholder monthly overview data
-  const monthsShort = ["Jan", "Feb", "Mar", "Apr"];
-  const barData = [
-    { month: "Jan", Income: 4000, Expenses: 3400 },
-    { month: "Feb", Income: 4000, Expenses: 2800 },
-    { month: "Mar", Income: 4000, Expenses: 3600 },
-    { month: "Apr", Income: 4000, Expenses: 3400 },
-  ];
-
   return (
-    <div className="min-h-screen bg-gradient-to-b from-pink-50 to-purple-50 p-6">
-      {/* Header Row */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
-        <div>
-          <h1 className="text-4xl font-extrabold text-gray-800 mb-1 font-display">Financial Management</h1>
-          <p className="text-lg text-gray-500">Track your expenses with love <span className="ml-1">💕</span></p>
-          </div>
-        <div className="flex gap-4">
-          <button className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white font-semibold px-8 py-3 rounded-2xl shadow-md text-lg transition">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-            Import Excel
-            </button>
-            <button 
-            className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold px-8 py-3 rounded-2xl shadow-md text-lg transition"
-            onClick={() => router.push("/page")}
-            >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M16 17v1a3 3 0 01-3 3H7a3 3 0 01-3-3V7a3 3 0 013-3h6a3 3 0 013 3v1m5 4h-8m0 0l3-3m-3 3l3 3" /></svg>
-            Run API
-            </button>
-          </div>
-        </div>
-        
-      {/* Month Selector - Custom Styled */}
-      <div className="bg-pink-100 rounded-2xl shadow-md p-6 mb-8 max-w-5xl mx-auto">
-        <label className="flex items-center gap-2 text-xl font-semibold text-gray-800 mb-2 font-display">
-          <span className="text-pink-400 text-2xl">📅</span> Select Month
-        </label>
-        <div className="relative">
-          <select
-            className="w-full mt-2 p-3 rounded-xl border-2 border-pink-200 bg-pink-50 text-lg focus:outline-none focus:ring-2 focus:ring-pink-300 custom-dropdown"
-            value={selectedMonth}
-            onChange={e => setSelectedMonth(e.target.value)}
-            style={{ appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none', fontWeight: 500, color: 'var(--color-dropdown-text)' }}
-          >
-            {months.map(month => (
-              <option key={month} value={month}>{month}</option>
-            ))}
-          </select>
-          <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-pink-300 text-xl">▼</span>
-        </div>
+    <div>
+      <PageHeader
+        title="Overview"
+        description="A snapshot of your income, spending, and where the money goes."
+        actions={
+          <Link href="/import">
+            <Button variant="secondary">Import</Button>
+          </Link>
+        }
+      />
+
+      <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <StatCard label="Income" value={formatCurrency(income)} tone="positive" />
+        <StatCard
+          label="Spending"
+          value={formatCurrency(spending)}
+          tone="negative"
+        />
+        <StatCard
+          label="Net"
+          value={formatCurrency(net)}
+          tone={net >= 0 ? "positive" : "negative"}
+        />
+        <StatCard
+          label="Savings rate"
+          value={`${savingsRate}%`}
+          hint={`${transactions.length} transactions`}
+        />
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 max-w-5xl mx-auto">
-        <div className="bg-purple-100 rounded-2xl shadow-md p-8 text-center">
-          <div className="text-4xl font-extrabold text-purple-600 mb-2">${summary.expenses}</div>
-          <div className="text-lg text-gray-500">Total Expenses</div>
-        </div>
-        <div className="bg-green-100 rounded-2xl shadow-md p-8 text-center">
-          <div className="text-4xl font-extrabold text-teal-600 mb-2">${summary.income.toLocaleString()}</div>
-          <div className="text-lg text-gray-500">Monthly Income</div>
-        </div>
-        <div className="bg-pink-100 rounded-2xl shadow-md p-8 text-center">
-          <div className="text-4xl font-extrabold text-pink-600 mb-2">${summary.savings}</div>
-          <div className="text-lg text-gray-500">Savings</div>
-        </div>
-                    </div>
-
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto mb-8">
-        {/* Pie Chart */}
-        <div className="bg-purple-50 rounded-2xl shadow-md p-6 flex flex-col">
-          <div className="text-xl font-semibold mb-4 flex items-center gap-2 font-display text-gray-800">
-            Expense Categories <span>🍰</span>
+      {loading ? (
+        <Card className="text-sm text-muted">Loading…</Card>
+      ) : transactions.length === 0 ? (
+        <Card className="flex flex-col items-start gap-3">
+          <div>
+            <p className="font-medium">No transactions yet</p>
+            <p className="text-sm text-muted">
+              Load a set of sample data to explore the app, or add your own.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={loadSample} disabled={seeding}>
+              {seeding ? "Loading…" : "Load sample data"}
+            </Button>
+            <Link href="/month-detail">
+              <Button variant="secondary">Add manually</Button>
+            </Link>
+            <Link href="/import">
+              <Button variant="secondary">Import</Button>
+            </Link>
+          </div>
+        </Card>
+      ) : (
+        <div className="flex flex-col gap-4">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <Card>
+              <h2 className="mb-4 text-sm font-medium text-muted">
+                Spending by category
+              </h2>
+              <ResponsiveContainer width="100%" height={260}>
+                <PieChart>
+                  <Pie
+                    data={categories}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={95}
+                    paddingAngle={2}
+                    stroke="none"
+                  >
+                    {categories.map((_, i) => (
+                      <Cell
+                        key={i}
+                        fill={CHART_COLORS[i % CHART_COLORS.length]}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<ChartTooltip />} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2">
+                {categories.map((cat, i) => (
+                  <div
+                    key={cat.name}
+                    className="flex items-center gap-2 text-xs text-muted"
+                  >
+                    <span
+                      className="h-2.5 w-2.5 rounded-full"
+                      style={{
+                        background: CHART_COLORS[i % CHART_COLORS.length],
+                      }}
+                    />
+                    {cat.name}
                   </div>
-          <div className="flex-1 flex flex-col items-center justify-center">
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={categories}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={100}
-                  label={({ name, value }) => `${name} ${value}%`}
+                ))}
+              </div>
+            </Card>
+
+            <Card>
+              <h2 className="mb-4 text-sm font-medium text-muted">
+                Income vs. spending
+              </h2>
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={monthly} barGap={6}>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="var(--border)"
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="month"
+                    tickLine={false}
+                    axisLine={false}
+                    tick={{ fill: "var(--muted)", fontSize: 12 }}
+                  />
+                  <YAxis
+                    tickLine={false}
+                    axisLine={false}
+                    width={40}
+                    tick={{ fill: "var(--muted)", fontSize: 12 }}
+                  />
+                  <Tooltip
+                    cursor={{ fill: "var(--surface-2)" }}
+                    content={<ChartTooltip />}
+                  />
+                  <Bar
+                    dataKey="income"
+                    name="Income"
+                    fill="var(--positive)"
+                    radius={[4, 4, 0, 0]}
+                    maxBarSize={28}
+                  />
+                  <Bar
+                    dataKey="spending"
+                    name="Spending"
+                    fill="var(--negative)"
+                    radius={[4, 4, 0, 0]}
+                    maxBarSize={28}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </Card>
+          </div>
+
+          <Card className="p-0">
+            <div className="flex items-center justify-between px-5 py-4">
+              <h2 className="text-sm font-medium text-muted">
+                Recent transactions
+              </h2>
+              <Link
+                href="/month-detail"
+                className="text-sm text-muted underline-offset-4 hover:text-foreground hover:underline"
+              >
+                View all
+              </Link>
+            </div>
+            <div className="border-t border-border">
+              {recent.map((t) => (
+                <div
+                  key={t._id}
+                  className="flex items-center justify-between border-b border-border px-5 py-3 last:border-0"
                 >
-                  {categories.map((entry, idx) => (
-                    <Cell key={`cell-${idx}`} fill={pieColors[idx % pieColors.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="mt-6 w-full flex flex-wrap justify-center gap-4">
-              {categories.map((cat, idx) => (
-                <div key={cat.name} className="flex items-center gap-2 text-sm" style={{ color: pieColors[idx % pieColors.length] }}>
-                  <span className="inline-block w-3 h-3 rounded-full" style={{ background: pieColors[idx % pieColors.length] }}></span>
-                  {cat.name} {cat.value}%
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium">
+                      {t.expense_name}
+                    </span>
+                    <Badge>{t.category}</Badge>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <span className="text-xs text-muted">
+                      {formatDate(t.date)}
+                    </span>
+                    <span
+                      className={`text-sm font-medium tabular-nums ${
+                        t.type === "credit"
+                          ? "text-positive"
+                          : "text-foreground"
+                      }`}
+                    >
+                      {t.type === "credit" ? "+" : "−"}
+                      {formatCurrency(t.amount)}
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>
-          </div>
+          </Card>
         </div>
-        {/* Bar Chart */}
-        <div className="bg-green-50 rounded-2xl shadow-md p-6 flex flex-col">
-          <div className="text-xl font-semibold mb-4 flex items-center gap-2 font-display text-gray-800">
-            Monthly Overview <span role="img" aria-label="bar chart">📊</span>
-          </div>
-          <div className="flex-1 flex flex-col items-center justify-center">
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={barData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="Income" fill="var(--color-bar-income)" barSize={32} radius={[8, 8, 0, 0]} />
-                <Bar dataKey="Expenses" fill="var(--color-bar-expenses)" barSize={32} radius={[8, 8, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
-      
-      {/* Action Buttons */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 max-w-5xl mx-auto">
-        <button
-          className="bg-pink-400 hover:bg-pink-500 text-white rounded-2xl p-6 text-lg font-semibold shadow-md flex flex-col items-center transition"
-          onClick={() => router.push("/month-detail")}
-        >
-          <span className="text-2xl mb-2">＋</span>
-          Add New Expense
-        </button>
-        <button
-          className="bg-purple-400 hover:bg-purple-500 text-white rounded-2xl p-6 text-lg font-semibold shadow-md flex flex-col items-center transition"
-          onClick={() => router.push("/month-overview")}
-        >
-          <span className="text-2xl mb-2">📅</span>
-          Monthly Details
-        </button>
-        <button
-          className="bg-teal-400 hover:bg-teal-500 text-white rounded-2xl p-6 text-lg font-semibold shadow-md flex flex-col items-center transition"
-          onClick={() => router.push("/notes")}
-        >
-          <span className="text-2xl mb-2">♡</span>
-          My Notes
-        </button>
-        <button
-          className="bg-orange-400 hover:bg-orange-500 text-white rounded-2xl p-6 text-lg font-semibold shadow-md flex flex-col items-center transition"
-          onClick={() => router.push("/debt")}
-        >
-          <span className="text-2xl mb-2">👥</span>
-          Debt Tracker
-        </button>
-      </div>
+      )}
     </div>
   );
 }
